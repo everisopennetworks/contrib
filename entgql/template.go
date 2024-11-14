@@ -443,44 +443,80 @@ func orderFields(n *gen.Type) ([]*OrderTerm, error) {
 	}
 	for _, e := range n.Edges {
 		name := strings.ToUpper(e.Name)
-		switch ant, err := annotation(e.Annotations); {
-		case err != nil:
+		ant, err := annotation(e.Annotations)
+		if err != nil {
 			return nil, err
-		case ant.Skip.Is(SkipOrderField), ant.OrderField == "":
-		case ant.OrderField == fmt.Sprintf("%s_COUNT", name):
-			// Validate that the edge has a count ordering.
-			if _, err := e.OrderCountName(); err != nil {
-				return nil, fmt.Errorf("entgql: invalid order field %s defined on edge %s.%s: %w", ant.OrderField, n.Name, e.Name, err)
+		}
+		if ant.Skip.Is(SkipOrderField) || ant.OrderField == "" {
+			continue
+		}
+		OrderFields := strings.Split(ant.OrderField, ",")
+		for _, OrderField := range OrderFields {
+			switch {
+			case OrderField == fmt.Sprintf("%s_COUNT", name):
+				// Validate that the edge has a count ordering.
+				if _, err := e.OrderCountName(); err != nil {
+					return nil, fmt.Errorf("entgql: invalid order field %s defined on edge %s.%s: %w", OrderField, n.Name, e.Name, err)
+				}
+				terms = append(terms, &OrderTerm{
+					GQL:   OrderField,
+					Type:  n,
+					Edge:  e,
+					Count: true,
+				})
+
+			case strings.HasPrefix(OrderField, name+"_"):
+				// Check if the order field has the "_NONUNIQUE" suffix.
+				isNonUnique := strings.HasSuffix(OrderField, "_NONUNIQUE")
+				ef := strings.TrimSuffix(OrderField, "_NONUNIQUE") // remove suffix if present
+				ef = strings.TrimPrefix(ef, name+"_")
+
+				// Validate if the field is non-unique or unique
+				if !isNonUnique {
+					// If not "_NONUNIQUE", validate that the edge has a unique field ordering.
+					if _, err := e.OrderFieldName(); err != nil {
+						return nil, fmt.Errorf("entgql: invalid order field %s defined on edge %s.%s: %w", OrderField, n.Name, e.Name, err)
+					}
+				}
+
+				// Find the index of the field `ef` in the Fields of the referenced type
+				idx := slices.IndexFunc(e.Type.Fields, func(f *gen.Field) bool {
+					ant, err := annotation(f.Annotations)
+					return err == nil && ant.OrderField == ef
+				})
+
+				if idx == -1 {
+					return nil, fmt.Errorf("entgql: order field %s defined on edge %s.%s was not found on its reference", OrderField, n.Name, e.Name)
+				}
+
+				// Add the primary order term for the specified field
+				terms = append(terms, &OrderTerm{
+					GQL:   OrderField,
+					Edge:  e,
+					Type:  e.Type,
+					Field: e.Type.Fields[idx],
+				})
+
+				// If "_NONUNIQUE", add a secondary order term by ID
+				if isNonUnique {
+					idField := e.Type.ID // assuming the ID field is in e.Type.ID
+					if idField == nil {
+						return nil, fmt.Errorf("entgql: no ID field found on edge %s.%s for secondary ordering", n.Name, e.Name)
+					}
+					terms = append(terms, &OrderTerm{
+						GQL:   "ID", // Indicator that the ID is used as a secondary sorting criterion
+						Edge:  e,
+						Type:  e.Type,
+						Field: idField,
+					})
+				}
+
+			default:
+				return nil, fmt.Errorf("entgql: invalid order field defined on edge %s.%s", n.Name, e.Name)
 			}
-			terms = append(terms, &OrderTerm{
-				GQL:   ant.OrderField,
-				Type:  n,
-				Edge:  e,
-				Count: true,
-			})
-		case strings.HasPrefix(ant.OrderField, name+"_"):
-			// Validate that the edge has a edge field ordering.
-			if _, err := e.OrderFieldName(); err != nil {
-				return nil, fmt.Errorf("entgql: invalid order field %s defined on edge %s.%s: %w", ant.OrderField, n.Name, e.Name, err)
-			}
-			ef := strings.TrimPrefix(ant.OrderField, name+"_")
-			idx := slices.IndexFunc(e.Type.Fields, func(f *gen.Field) bool {
-				ant, err := annotation(f.Annotations)
-				return err == nil && ant.OrderField == ef
-			})
-			if idx == -1 {
-				return nil, fmt.Errorf("entgql: order field %s defined on edge %s.%s was not found on its reference", ant.OrderField, n.Name, e.Name)
-			}
-			terms = append(terms, &OrderTerm{
-				GQL:   ant.OrderField,
-				Edge:  e,
-				Type:  e.Type,
-				Field: e.Type.Fields[idx],
-			})
-		default:
-			return nil, fmt.Errorf("entgql: invalid order field defined on edge %s.%s", n.Name, e.Name)
 		}
 	}
+
 	return terms, nil
 }
 
