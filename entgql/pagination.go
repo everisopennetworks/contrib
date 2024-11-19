@@ -215,22 +215,26 @@ func multiPredicate[T any](cursor *Cursor[T], opts *MultiCursorsOptions) (func(*
 		opts.Fields = append(opts.Fields, opts.FieldID)
 		opts.Directions = append(opts.Directions, opts.DirectionID)
 	}
-	return func(s *sql.Selector) {
-		// Given the following terms: x DESC, y ASC, etc. The following predicate will be
-		// generated: (x < x1 OR (x = x1 AND y > y1) OR (x = x1 AND y = y1 AND id > last)).
-		var or []*sql.Predicate
-		for i := range opts.Fields {
-			var ands []*sql.Predicate
-			for j := 0; j < i; j++ {
-				ands = append(ands, sql.EQ(s.C(opts.Fields[j]), values[j]))
+	// Given the following terms: x DESC, y ASC, etc. The following predicate will be
+	// generated: (x < x1 OR (x = x1 AND y > y1) OR (x = x1 AND y = y1 AND id > last)).
+	var or []*sql.Predicate
+	for i := range opts.Fields {
+		var ands []*sql.Predicate
+		for j := 0; j < i; j++ {
+			if values[j] == nil {
+				continue
 			}
-			if opts.Directions[i] == OrderDirectionAsc {
-				ands = append(ands, sql.GT(s.C(opts.Fields[i]), values[i]))
-			} else {
-				ands = append(ands, sql.LT(s.C(opts.Fields[i]), values[i]))
-			}
-			or = append(or, sql.And(ands...))
+			ands = append(ands, sql.EQ(opts.Fields[j], values[j]))
 		}
-		s.Where(sql.Or(or...))
-	}, nil
+		if values[i] == nil {
+			continue
+		}
+		if opts.Directions[i] == OrderDirectionAsc {
+			ands = append(ands, sql.GT(opts.Fields[i], values[i]))
+		} else {
+			ands = append(ands, sql.LT(opts.Fields[i], values[i]))
+		}
+		or = append(or, sql.And(ands...))
+	}
+	return func(s *sql.Selector) { s.Where(sql.Or(or...)) }, nil
 }
