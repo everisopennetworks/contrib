@@ -492,10 +492,17 @@ func ({{ $r }} *{{ $query }}) Paginate(
 				{{- else if $f.IsEdgeFieldTerm }}
 					column: {{ $f.VarField }},
 					toTerm: func(opts ...sql.OrderTermOption) {{ $node.Package }}.OrderOption {
-						return {{ $node.Package}}.{{ $f.Edge.OrderFieldName }}(
-							{{ $f.Type.Package }}.{{ $f.Field.Constant }},
-							append(opts, sql.OrderSelectAs({{ $f.VarField }}))...,
-						)
+							{{- if $f.Edge.IsUnique }} // Verificamos si el edge es único
+							return {{ $node.Package}}.{{ $f.Edge.OrderFieldName }}(
+									{{ $f.Type.Package }}.{{ $f.Field.Constant }},
+									append(opts, sql.OrderSelectAs({{ $f.VarField }}))...,
+							)
+							{{- else }} // Si no es único, usamos la función alternativa
+							return {{ $node.Package}}.{{ $f.Edge.OrderFieldNonUniqueName }}(
+									{{ $f.Type.Package }}.{{ $f.Field.Constant }},
+									append(opts, sql.OrderSelectAs({{ $f.VarField }}))...,
+							)
+							{{- end }}
 					},
 				{{- else if $f.IsEdgeCountTerm }}
 					column: {{ $f.VarField }},
