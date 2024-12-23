@@ -47,10 +47,10 @@ type (
 )
 
 func orderFunc(o OrderDirection, field string) func(*sql.Selector) {
-       if o == entgql.OrderDirectionDesc {
-               return Desc(field)
-       }
-       return Asc(field)
+  if o == entgql.OrderDirectionDesc {
+      return Desc(field)
+    }
+  return Asc(field)
 }
 
 const errInvalidPagination = "INVALID_PAGINATION"
@@ -364,7 +364,11 @@ func (p *{{ $pager }}) applyOrder(query *{{ $query }}) *{{ $query }} {
 		if p.reverse {
 			direction = direction.Reverse()
 		}
-		query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+		fieldColumn := "LOWER(" + p.order.Field.column + ") "
+		query = query.Order(orderFunc(
+			direction,
+			fieldColumn, 
+		))
 		{{- /* We need to ensure the ID field is included in ORDER BY since the other terms might not be unique. */}}
 		if p.order.Field != {{ $defaultOrder }}.Field {
 			query = query.Order({{ $defaultOrder }}.Field.toTerm(direction.OrderTermOption()))

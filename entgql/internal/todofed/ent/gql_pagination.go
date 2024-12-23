@@ -242,7 +242,11 @@ func (p *categoryPager) applyOrder(query *CategoryQuery) *CategoryQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultCategoryOrder.Field {
 		query = query.Order(DefaultCategoryOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -553,7 +557,11 @@ func (p *todoPager) applyOrder(query *TodoQuery) *TodoQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultTodoOrder.Field {
 		query = query.Order(DefaultTodoOrder.Field.toTerm(direction.OrderTermOption()))
 	}

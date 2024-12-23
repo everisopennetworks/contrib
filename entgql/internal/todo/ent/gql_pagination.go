@@ -248,7 +248,11 @@ func (p *billproductPager) applyOrder(query *BillProductQuery) *BillProductQuery
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultBillProductOrder.Field {
 		query = query.Order(DefaultBillProductOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -913,7 +917,11 @@ func (p *friendshipPager) applyOrder(query *FriendshipQuery) *FriendshipQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultFriendshipOrder.Field {
 		query = query.Order(DefaultFriendshipOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -1441,7 +1449,11 @@ func (p *onetomanyPager) applyOrder(query *OneToManyQuery) *OneToManyQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultOneToManyOrder.Field {
 		query = query.Order(DefaultOneToManyOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -1734,7 +1746,11 @@ func (p *projectPager) applyOrder(query *ProjectQuery) *ProjectQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultProjectOrder.Field {
 		query = query.Order(DefaultProjectOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -1980,7 +1996,11 @@ func (p *todoPager) applyOrder(query *TodoQuery) *TodoQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultTodoOrder.Field {
 		query = query.Order(DefaultTodoOrder.Field.toTerm(direction.OrderTermOption()))
 	}
@@ -2407,7 +2427,11 @@ func (p *userPager) applyOrder(query *UserQuery) *UserQuery {
 	if p.reverse {
 		direction = direction.Reverse()
 	}
-	query = query.Order(p.order.Field.toTerm(direction.OrderTermOption()))
+	fieldColumn := "LOWER(" + p.order.Field.column + ") "
+	query = query.Order(orderFunc(
+		direction,
+		fieldColumn,
+	))
 	if p.order.Field != DefaultUserOrder.Field {
 		query = query.Order(DefaultUserOrder.Field.toTerm(direction.OrderTermOption()))
 	}
